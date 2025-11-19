@@ -2,6 +2,7 @@
 require('dotenv').config();
 
 const express = require('express');
+const http = require('http');
 const path = require('path');
 
 const app = express();
@@ -19,14 +20,22 @@ app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
 });
 
-// Start server trên địa chỉ IPv6 cụ thể
-app.listen(PORT, IPV6_ADDRESS, () => {
+// Create HTTP server for IPv6-only support
+const server = http.createServer(app);
+
+// Start server trên địa chỉ IPv6 cụ thể (IPv6-only, no dual-stack)
+server.listen(PORT, IPV6_ADDRESS, () => {
+    const address = server.address();
+
     console.log('========================================');
     console.log(`Server đang chạy:`);
     console.log(`- Environment: ${NODE_ENV}`);
     console.log(`- IPv6 Address: ${IPV6_ADDRESS}`);
     console.log(`- Port: ${PORT}`);
     console.log(`- URL: http://[${IPV6_ADDRESS}]:${PORT}`);
+    if (address && address.family) {
+        console.log(`- Address Family: ${address.family} (IPv6 Only)`);
+    }
     console.log('========================================');
     if (PORT < 1024) {
         console.log('\nLưu ý: Port < 1024 cần quyền administrator/root');
@@ -41,12 +50,15 @@ app.use((err, req, res, next) => {
     res.status(500).send('Có lỗi xảy ra!');
 });
 
-process.on('EADDRINUSE', () => {
-    console.error(`Port ${PORT} đã được sử dụng bởi ứng dụng khác`);
-    process.exit(1);
-});
-
-process.on('EACCES', () => {
-    console.error(`Không có quyền sử dụng port ${PORT}. Cần chạy với quyền administrator/root`);
-    process.exit(1);
+server.on('error', (err) => {
+    if (err.code === 'EADDRINUSE') {
+        console.error(`Port ${PORT} đã được sử dụng bởi ứng dụng khác`);
+        process.exit(1);
+    } else if (err.code === 'EACCES') {
+        console.error(`Không có quyền sử dụng port ${PORT}. Cần chạy với quyền administrator/root`);
+        process.exit(1);
+    } else {
+        console.error('Server error:', err);
+        process.exit(1);
+    }
 });

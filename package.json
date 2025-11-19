@@ -6,10 +6,10 @@
   "scripts": {
     "start": "node dist/server.js",
     "build": "tsc",
-    "dev": "tsc -w & nodemon dist/server.js",
+    "dev": "concurrently \"tsc -w\" \"nodemon dist/server.js\"",
     "dev:server": "nodemon dist/server.js",
-    "compile": "tsc",
-    "db:init": "node dist/database/init.js"
+    "dev:build": "tsc -w",
+    "compile": "tsc"
   },
   "keywords": [
     "hosting",
@@ -28,6 +28,7 @@
     "@types/better-sqlite3": "^7.6.8",
     "@types/express": "^4.17.21",
     "@types/node": "^20.10.0",
+    "concurrently": "^9.2.1",
     "nodemon": "^3.0.1",
     "typescript": "^5.3.2"
   }
