@@ -1,10 +1,29 @@
 import express, { Application, Request, Response, NextFunction } from 'express';
 import path from 'path';
+import fs from 'fs';
 import dotenv from 'dotenv';
 import crypto from 'crypto';
 
 // Load environment variables
 dotenv.config();
+
+// Ensure data directory exists
+const dataDir = path.join(__dirname, '..', 'data');
+if (!fs.existsSync(dataDir)) {
+    fs.mkdirSync(dataDir, { recursive: true });
+}
+
+// Import database
+import { initializeDatabase } from './database/schema';
+import {
+    userRepository,
+    serverConfigRepository,
+    userServerRepository,
+    transactionRepository
+} from './database/repository';
+
+// Initialize database
+initializeDatabase();
 
 const app: Application = express();
 
@@ -20,7 +39,7 @@ const DISCORD_REDIRECT_URI: string = process.env.DISCORD_REDIRECT_URI || `http:/
 // Simple in-memory session store (use Redis in production)
 interface Session {
     id: string;
-    userId?: string;
+    odUserId?: string;
     username?: string;
     avatar?: string;
     email?: string;
@@ -49,6 +68,22 @@ app.use((req: Request, res: Response, next: NextFunction) => {
     next();
 });
 
+// Auth middleware
+const requireAuth = (req: Request, res: Response, next: NextFunction) => {
+    const sessionId = (req as any).cookies?.whitecat_session;
+    if (!sessionId) {
+        return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    const session = sessions.get(sessionId);
+    if (!session || !session.odUserId) {
+        return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    (req as any).userId = session.odUserId;
+    next();
+};
+
 // Serve static files from public directory
 app.use(express.static(path.join(__dirname, '..', 'public')));
 
@@ -76,18 +111,16 @@ app.get('/auth/discord', (req: Request, res: Response) => {
 
     const state = crypto.randomBytes(16).toString('hex');
 
-    // Store state in a temporary session
     const sessionId = crypto.randomBytes(32).toString('hex');
     sessions.set(sessionId, {
         id: sessionId,
         createdAt: new Date()
     });
 
-    // Set session cookie
     res.cookie('whitecat_session', sessionId, {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
-        maxAge: 3600000 // 1 hour
+        maxAge: 3600000
     });
 
     const params = new URLSearchParams({
@@ -114,7 +147,6 @@ app.get('/auth/discord/callback', async (req: Request, res: Response) => {
     }
 
     try {
-        // Exchange code for tokens
         const tokenResponse = await fetch('https://discord.com/api/oauth2/token', {
             method: 'POST',
             headers: {
@@ -141,7 +173,6 @@ app.get('/auth/discord/callback', async (req: Request, res: Response) => {
             expires_in: number;
         };
 
-        // Get user info from Discord
         const userResponse = await fetch('https://discord.com/api/users/@me', {
             headers: {
                 Authorization: `Bearer ${tokens.access_token}`
@@ -153,7 +184,7 @@ app.get('/auth/discord/callback', async (req: Request, res: Response) => {
             return res.redirect('/?error=user_info_failed');
         }
 
-        const user = await userResponse.json() as {
+        const discordUser = await userResponse.json() as {
             id: string;
             username: string;
             discriminator: string;
@@ -161,28 +192,35 @@ app.get('/auth/discord/callback', async (req: Request, res: Response) => {
             email: string;
         };
 
-        // Create or update session
-        const sessionId = crypto.randomBytes(32).toString('hex');
-        const avatarUrl = user.avatar
-            ? `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png`
-            : `https://cdn.discordapp.com/embed/avatars/${parseInt(user.discriminator) % 5}.png`;
+        // Create or update user in database
+        const avatarUrl = discordUser.avatar
+            ? `https://cdn.discordapp.com/avatars/${discordUser.id}/${discordUser.avatar}.png`
+            : `https://cdn.discordapp.com/embed/avatars/${parseInt(discordUser.discriminator) % 5}.png`;
 
+        const user = userRepository.upsert({
+            id: discordUser.id,
+            username: discordUser.username,
+            email: discordUser.email,
+            avatar: avatarUrl
+        });
+
+        // Create session
+        const sessionId = crypto.randomBytes(32).toString('hex');
         sessions.set(sessionId, {
             id: sessionId,
-            userId: user.id,
+            odUserId: user.id,
             username: user.username,
             avatar: avatarUrl,
-            email: user.email,
+            email: user.email || undefined,
             accessToken: tokens.access_token,
             refreshToken: tokens.refresh_token,
             createdAt: new Date()
         });
 
-        // Set session cookie
         res.cookie('whitecat_session', sessionId, {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
-            maxAge: 7 * 24 * 3600000 // 7 days
+            maxAge: 7 * 24 * 3600000
         });
 
         res.redirect('/?login=success');
@@ -203,17 +241,25 @@ app.get('/api/user', (req: Request, res: Response) => {
 
     const session = sessions.get(sessionId);
 
-    if (!session || !session.userId) {
+    if (!session || !session.odUserId) {
+        return res.json({ authenticated: false });
+    }
+
+    // Get user from database
+    const user = userRepository.findById(session.odUserId);
+
+    if (!user) {
         return res.json({ authenticated: false });
     }
 
     res.json({
         authenticated: true,
         user: {
-            id: session.userId,
-            username: session.username,
-            avatar: session.avatar,
-            email: session.email
+            id: user.id,
+            username: user.username,
+            avatar: user.avatar,
+            email: user.email,
+            balance: user.balance
         }
     });
 });
@@ -231,7 +277,193 @@ app.post('/auth/logout', (req: Request, res: Response) => {
 });
 
 // ========================================
-// API Endpoints
+// Server Config API
+// ========================================
+
+// Get all active server configs
+app.get('/api/configs', (req: Request, res: Response) => {
+    const configs = serverConfigRepository.findAllActive();
+    res.json(configs.map(config => ({
+        ...config,
+        features: JSON.parse(config.features)
+    })));
+});
+
+// Get single config
+app.get('/api/configs/:id', (req: Request, res: Response) => {
+    const config = serverConfigRepository.findById(parseInt(req.params.id));
+    if (!config) {
+        return res.status(404).json({ error: 'Config not found' });
+    }
+    res.json({
+        ...config,
+        features: JSON.parse(config.features)
+    });
+});
+
+// ========================================
+// User Balance API
+// ========================================
+
+// Get user balance
+app.get('/api/user/balance', requireAuth, (req: Request, res: Response) => {
+    const userId = (req as any).userId;
+    const balance = userRepository.getBalance(userId);
+    res.json({ balance });
+});
+
+// Add balance (deposit) - In production, integrate with payment gateway
+app.post('/api/user/deposit', requireAuth, (req: Request, res: Response) => {
+    const userId = (req as any).userId;
+    const { amount } = req.body;
+
+    if (!amount || amount <= 0) {
+        return res.status(400).json({ error: 'Invalid amount' });
+    }
+
+    // Update balance
+    userRepository.updateBalance(userId, amount);
+
+    // Create transaction record
+    transactionRepository.create({
+        user_id: userId,
+        type: 'deposit',
+        amount: amount,
+        description: 'Nạp tiền vào tài khoản'
+    });
+
+    const newBalance = userRepository.getBalance(userId);
+    res.json({ success: true, balance: newBalance });
+});
+
+// Get transaction history
+app.get('/api/user/transactions', requireAuth, (req: Request, res: Response) => {
+    const userId = (req as any).userId;
+    const limit = parseInt(req.query.limit as string) || 50;
+    const transactions = transactionRepository.findByUserId(userId, limit);
+    res.json(transactions);
+});
+
+// ========================================
+// User Server API
+// ========================================
+
+// Get user's servers
+app.get('/api/user/servers', requireAuth, (req: Request, res: Response) => {
+    const userId = (req as any).userId;
+    const servers = userServerRepository.findByUserId(userId);
+    res.json(servers);
+});
+
+// Purchase a server
+app.post('/api/user/servers', requireAuth, (req: Request, res: Response) => {
+    const userId = (req as any).userId;
+    const { config_id, server_name, months = 1 } = req.body;
+
+    if (!config_id || !server_name) {
+        return res.status(400).json({ error: 'Missing required fields' });
+    }
+
+    // Get config and check price
+    const config = serverConfigRepository.findById(config_id);
+    if (!config) {
+        return res.status(404).json({ error: 'Config not found' });
+    }
+
+    const totalPrice = config.price_monthly * months;
+    const balance = userRepository.getBalance(userId);
+
+    if (balance < totalPrice) {
+        return res.status(400).json({
+            error: 'Insufficient balance',
+            required: totalPrice,
+            current: balance
+        });
+    }
+
+    // Deduct balance
+    userRepository.updateBalance(userId, -totalPrice);
+
+    // Create server
+    const server = userServerRepository.create({
+        user_id: userId,
+        config_id: config_id,
+        server_name: server_name,
+        months: months
+    });
+
+    if (!server) {
+        // Refund if server creation failed
+        userRepository.updateBalance(userId, totalPrice);
+        return res.status(500).json({ error: 'Failed to create server' });
+    }
+
+    // Create transaction record
+    transactionRepository.create({
+        user_id: userId,
+        type: 'purchase',
+        amount: -totalPrice,
+        description: `Mua server ${config.name} - ${server_name} (${months} tháng)`,
+        reference_id: server.id.toString()
+    });
+
+    res.json({
+        success: true,
+        server: server,
+        new_balance: userRepository.getBalance(userId)
+    });
+});
+
+// Extend server
+app.post('/api/user/servers/:id/extend', requireAuth, (req: Request, res: Response) => {
+    const userId = (req as any).userId;
+    const serverId = parseInt(req.params.id);
+    const { months = 1 } = req.body;
+
+    // Get server
+    const server = userServerRepository.findById(serverId);
+    if (!server || server.user_id !== userId) {
+        return res.status(404).json({ error: 'Server not found' });
+    }
+
+    // Get config for price
+    const config = serverConfigRepository.findById(server.config_id);
+    if (!config) {
+        return res.status(404).json({ error: 'Config not found' });
+    }
+
+    const totalPrice = config.price_monthly * months;
+    const balance = userRepository.getBalance(userId);
+
+    if (balance < totalPrice) {
+        return res.status(400).json({
+            error: 'Insufficient balance',
+            required: totalPrice,
+            current: balance
+        });
+    }
+
+    // Deduct balance and extend
+    userRepository.updateBalance(userId, -totalPrice);
+    userServerRepository.extend(serverId, months);
+
+    // Create transaction
+    transactionRepository.create({
+        user_id: userId,
+        type: 'purchase',
+        amount: -totalPrice,
+        description: `Gia hạn server ${server.server_name} (${months} tháng)`,
+        reference_id: serverId.toString()
+    });
+
+    res.json({
+        success: true,
+        new_balance: userRepository.getBalance(userId)
+    });
+});
+
+// ========================================
+// Contact Form
 // ========================================
 
 interface ContactFormData {
@@ -244,7 +476,6 @@ interface ContactFormData {
 app.post('/api/contact', (req: Request, res: Response) => {
     const { name, email, phone, message }: ContactFormData = req.body;
 
-    // Validate required fields
     if (!name || !email || !message) {
         return res.status(400).json({
             success: false,
@@ -252,7 +483,6 @@ app.post('/api/contact', (req: Request, res: Response) => {
         });
     }
 
-    // Log contact submission (in production, send email or save to database)
     console.log('Contact form submission:', {
         name,
         email,
@@ -267,12 +497,12 @@ app.post('/api/contact', (req: Request, res: Response) => {
     });
 });
 
-// Catch-all route - serve index.html for SPA-like behavior
+// Catch-all route
 app.get('*', (req: Request, res: Response) => {
     res.sendFile(path.join(__dirname, '..', 'public', 'index.html'));
 });
 
-// Start server with IPv6 support
+// Start server
 const server = app.listen(PORT, IPV6_ADDRESS, () => {
     console.log(`
     🐱 WhiteCat Hosting Server
@@ -283,6 +513,7 @@ const server = app.listen(PORT, IPV6_ADDRESS, () => {
 
     Environment: ${process.env.NODE_ENV || 'development'}
     Discord OAuth: ${DISCORD_CLIENT_ID ? 'Configured' : 'Not configured'}
+    Database: SQLite (data/whitecat.db)
     `);
 });
 
@@ -291,11 +522,11 @@ setInterval(() => {
     const now = new Date();
     sessions.forEach((session, id) => {
         const age = now.getTime() - session.createdAt.getTime();
-        if (age > 7 * 24 * 3600000) { // 7 days
+        if (age > 7 * 24 * 3600000) {
             sessions.delete(id);
         }
     });
-}, 3600000); // Run every hour
+}, 3600000);
 
 // Graceful shutdown
 process.on('SIGTERM', () => {
@@ -306,7 +537,6 @@ process.on('SIGTERM', () => {
     });
 });
 
-// Handle errors
 server.on('error', (error: NodeJS.ErrnoException) => {
     if (error.code === 'EADDRINUSE') {
         console.error(`Port ${PORT} is already in use`);
