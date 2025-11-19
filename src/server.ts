@@ -29,7 +29,7 @@ const app: Application = express();
 
 // Configuration
 const PORT: number = parseInt(process.env.PORT || '3000', 10);
-const IPV6_ADDRESS: string = process.env.IPV6_ADDRESS || '::';
+const HOST: string = process.env.HOST || '0.0.0.0'; // Listen on all interfaces (IPv4)
 
 // Discord OAuth Configuration
 const DISCORD_CLIENT_ID: string = process.env.DISCORD_CLIENT_ID || '';
@@ -503,13 +503,13 @@ app.get('*', (req: Request, res: Response) => {
 });
 
 // Start server
-const server = app.listen(PORT, IPV6_ADDRESS, () => {
+const server = app.listen(PORT, HOST, () => {
     console.log(`
     🐱 WhiteCat Hosting Server
     ==========================
     Server running at:
-    - IPv6: http://[${IPV6_ADDRESS}]:${PORT}
-    - Local: http://localhost:${PORT}
+    - http://${HOST}:${PORT}
+    - http://localhost:${PORT}
 
     Environment: ${process.env.NODE_ENV || 'development'}
     Discord OAuth: ${DISCORD_CLIENT_ID ? 'Configured' : 'Not configured'}
