@@ -7,6 +7,12 @@ node_modules/
 # TypeScript build output
 dist/
 
+# Database
+data/
+*.db
+*.db-wal
+*.db-shm
+
 # Logs
 *.log
 npm-debug.log*
