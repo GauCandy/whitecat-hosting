@@ -1,0 +1,25 @@
+{
+  "name": "hosting-website",
+  "version": "1.0.0",
+  "description": "Website quảng cáo hosting",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "start-simple": "node server-simple.js",
+    "dev": "nodemon server.js"
+  },
+  "keywords": [
+    "hosting",
+    "website",
+    "ipv6"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "dotenv": "^17.2.3",
+    "express": "^4.18.2"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  }
+}
