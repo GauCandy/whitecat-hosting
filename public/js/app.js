@@ -1,5 +1,4 @@
 // WhiteCat Hosting - Frontend JavaScript
-// Compiled from TypeScript
 
 // Theme Management
 const themeManager = {
@@ -39,7 +38,224 @@ if (themeToggle) {
     });
 }
 
-// Smooth scrolling for navigation links
+// ========================================
+// User Authentication
+// ========================================
+const authManager = {
+    user: null,
+
+    async checkAuth() {
+        try {
+            const response = await fetch('/api/user');
+            const data = await response.json();
+
+            if (data.authenticated) {
+                this.user = data.user;
+                this.updateUI();
+            }
+        } catch (err) {
+            console.error('Auth check failed:', err);
+        }
+    },
+
+    updateUI() {
+        const discordLogin = document.getElementById('discordLogin');
+
+        if (this.user && discordLogin) {
+            // Replace login button with user info
+            discordLogin.innerHTML = `
+                <img src="${this.user.avatar}" alt="${this.user.username}"
+                     style="width: 24px; height: 24px; border-radius: 50%; margin-right: 8px;">
+                ${this.user.username}
+            `;
+            discordLogin.href = '#';
+            discordLogin.classList.add('logged-in');
+
+            // Add dropdown menu
+            discordLogin.addEventListener('click', (e) => {
+                e.preventDefault();
+                this.showUserMenu(discordLogin);
+            });
+        }
+    },
+
+    showUserMenu(element) {
+        // Remove existing menu
+        const existingMenu = document.querySelector('.user-menu');
+        if (existingMenu) {
+            existingMenu.remove();
+            return;
+        }
+
+        const menu = document.createElement('div');
+        menu.className = 'user-menu';
+        menu.innerHTML = `
+            <div class="user-menu-item user-info">
+                <img src="${this.user.avatar}" alt="${this.user.username}">
+                <div>
+                    <strong>${this.user.username}</strong>
+                    <small>${this.user.email || ''}</small>
+                </div>
+            </div>
+            <hr>
+            <button class="user-menu-item logout-btn">
+                Đăng Xuất
+            </button>
+        `;
+
+        // Position menu
+        const rect = element.getBoundingClientRect();
+        menu.style.cssText = `
+            position: absolute;
+            top: ${rect.bottom + 10}px;
+            right: 20px;
+            background: var(--bg-card);
+            border: 2px solid var(--border-color);
+            border-radius: 12px;
+            padding: 10px;
+            min-width: 200px;
+            box-shadow: 0 10px 30px var(--shadow-color);
+            z-index: 1000;
+        `;
+
+        document.body.appendChild(menu);
+
+        // Logout handler
+        menu.querySelector('.logout-btn').addEventListener('click', async () => {
+            await this.logout();
+            menu.remove();
+        });
+
+        // Close on outside click
+        setTimeout(() => {
+            document.addEventListener('click', function closeMenu(e) {
+                if (!menu.contains(e.target) && e.target !== element) {
+                    menu.remove();
+                    document.removeEventListener('click', closeMenu);
+                }
+            });
+        }, 100);
+    },
+
+    async logout() {
+        try {
+            await fetch('/auth/logout', { method: 'POST' });
+            window.location.reload();
+        } catch (err) {
+            console.error('Logout failed:', err);
+        }
+    }
+};
+
+// Check authentication on load
+authManager.checkAuth();
+
+// Handle login success/error messages
+const urlParams = new URLSearchParams(window.location.search);
+if (urlParams.get('login') === 'success') {
+    // Show success message
+    showNotification('Đăng nhập thành công! Chào mừng bạn đến với WhiteCat 🐱', 'success');
+    // Clean URL
+    window.history.replaceState({}, document.title, window.location.pathname);
+} else if (urlParams.get('error')) {
+    showNotification('Đăng nhập thất bại. Vui lòng thử lại.', 'error');
+    window.history.replaceState({}, document.title, window.location.pathname);
+}
+
+function showNotification(message, type = 'info') {
+    const notification = document.createElement('div');
+    notification.className = `notification notification-${type}`;
+    notification.innerHTML = `
+        <span>${message}</span>
+        <button onclick="this.parentElement.remove()">&times;</button>
+    `;
+    notification.style.cssText = `
+        position: fixed;
+        top: 80px;
+        right: 20px;
+        padding: 15px 20px;
+        background: ${type === 'success' ? '#10b981' : type === 'error' ? '#ef4444' : 'var(--accent-primary)'};
+        color: white;
+        border-radius: 10px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        z-index: 1000;
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        animation: slideIn 0.3s ease-out;
+    `;
+
+    document.body.appendChild(notification);
+
+    setTimeout(() => {
+        notification.style.animation = 'slideOut 0.3s ease-out forwards';
+        setTimeout(() => notification.remove(), 300);
+    }, 5000);
+}
+
+// Add notification animations
+const notificationStyles = document.createElement('style');
+notificationStyles.textContent = `
+    @keyframes slideIn {
+        from { transform: translateX(100%); opacity: 0; }
+        to { transform: translateX(0); opacity: 1; }
+    }
+    @keyframes slideOut {
+        from { transform: translateX(0); opacity: 1; }
+        to { transform: translateX(100%); opacity: 0; }
+    }
+    .user-menu-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: background 0.3s;
+    }
+    .user-menu-item:hover {
+        background: var(--bg-secondary);
+    }
+    .user-menu-item img {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+    }
+    .user-menu-item div {
+        display: flex;
+        flex-direction: column;
+    }
+    .user-menu-item small {
+        color: var(--text-secondary);
+        font-size: 12px;
+    }
+    .user-menu hr {
+        border: none;
+        border-top: 1px solid var(--border-color);
+        margin: 5px 0;
+    }
+    .logout-btn {
+        width: 100%;
+        background: none;
+        border: none;
+        color: var(--text-primary);
+        font-family: inherit;
+        font-size: 14px;
+        text-align: left;
+        cursor: pointer;
+    }
+    .logout-btn:hover {
+        color: #ef4444;
+    }
+    .btn-discord.logged-in {
+        background: var(--accent-primary);
+    }
+`;
+document.head.appendChild(notificationStyles);
+
+// ========================================
+// Smooth Scrolling
+// ========================================
 document.querySelectorAll('a[href^="#"]').forEach(anchor => {
     anchor.addEventListener('click', function(e) {
         e.preventDefault();
@@ -56,37 +272,52 @@ document.querySelectorAll('a[href^="#"]').forEach(anchor => {
     });
 });
 
-// Form submission handler
+// ========================================
+// Form Submission
+// ========================================
 const contactForm = document.getElementById('contactForm');
 if (contactForm) {
-    contactForm.addEventListener('submit', function(e) {
+    contactForm.addEventListener('submit', async function(e) {
         e.preventDefault();
 
-        // Get form data
         const formData = new FormData(this);
+        const data = {
+            name: this.querySelector('input[type="text"]').value,
+            email: this.querySelector('input[type="email"]').value,
+            phone: this.querySelector('input[type="tel"]').value,
+            message: this.querySelector('textarea').value
+        };
 
         // Simple validation
-        const inputs = this.querySelectorAll('input, textarea');
-        let isValid = true;
+        if (!data.name || !data.email || !data.message) {
+            showNotification('Vui lòng điền đầy đủ thông tin bắt buộc.', 'error');
+            return;
+        }
 
-        inputs.forEach(input => {
-            if (input.hasAttribute('required') && !input.value.trim()) {
-                isValid = false;
-                input.style.borderColor = '#ef4444';
+        try {
+            const response = await fetch('/api/contact', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(data)
+            });
+
+            if (response.ok) {
+                showNotification('Cảm ơn bạn đã liên hệ! WhiteCat sẽ phản hồi sớm nhất. 🐱', 'success');
+                this.reset();
             } else {
-                input.style.borderColor = '';
+                showNotification('Có lỗi xảy ra. Vui lòng thử lại.', 'error');
             }
-        });
-
-        if (isValid) {
-            // Show success message
-            alert('Cảm ơn bạn đã liên hệ! WhiteCat sẽ phản hồi trong thời gian sớm nhất. 🐱');
-            this.reset();
+        } catch (err) {
+            showNotification('Có lỗi xảy ra. Vui lòng thử lại.', 'error');
         }
     });
 }
 
-// Scroll animations using Intersection Observer
+// ========================================
+// Scroll Animations
+// ========================================
 const animationOptions = {
     threshold: 0.1,
     rootMargin: '0px 0px -50px 0px'
@@ -100,13 +331,14 @@ const scrollObserver = new IntersectionObserver((entries) => {
     });
 }, animationOptions);
 
-// Observe all animatable elements
 document.querySelectorAll('.feature-card, .pricing-card, .contact-item').forEach(element => {
     element.classList.add('animate-on-scroll');
     scrollObserver.observe(element);
 });
 
-// Add active state to navigation on scroll
+// ========================================
+// Active Navigation
+// ========================================
 const updateActiveNav = () => {
     const sections = document.querySelectorAll('section[id]');
     const navLinks = document.querySelectorAll('.nav-menu a');
@@ -115,8 +347,6 @@ const updateActiveNav = () => {
 
     sections.forEach(section => {
         const sectionTop = section.offsetTop;
-        const sectionHeight = section.clientHeight;
-
         if (window.pageYOffset >= sectionTop - 100) {
             currentSection = section.getAttribute('id') || '';
         }
@@ -132,12 +362,13 @@ const updateActiveNav = () => {
 
 window.addEventListener('scroll', updateActiveNav);
 
-// Counter animation for stats
+// ========================================
+// Counter Animation
+// ========================================
 const animateCounter = (config) => {
     const { element, target, duration, suffix } = config;
-    const start = 0;
     const increment = target / (duration / 16);
-    let current = start;
+    let current = 0;
 
     const timer = setInterval(() => {
         current += increment;
@@ -149,7 +380,6 @@ const animateCounter = (config) => {
     }, 16);
 };
 
-// Trigger counter animation when stats are visible
 const statsObserver = new IntersectionObserver((entries) => {
     entries.forEach(entry => {
         if (entry.isIntersecting) {
@@ -159,7 +389,6 @@ const statsObserver = new IntersectionObserver((entries) => {
                 const target = parseInt(stat.getAttribute('data-target') || '0', 10);
                 let suffix = '';
 
-                // Determine suffix based on target value
                 if (target === 99 || target === 40) {
                     suffix = '%';
                 }
@@ -182,60 +411,32 @@ if (heroStats) {
     statsObserver.observe(heroStats);
 }
 
-// Cat mascot interaction
-const catMascot = document.querySelector('.cat-mascot');
-if (catMascot) {
-    catMascot.addEventListener('click', () => {
-        catMascot.style.animation = 'none';
-        catMascot.offsetHeight; // Trigger reflow
-        catMascot.style.animation = 'cat-float 0.5s ease-in-out 3';
+// ========================================
+// Cat Interaction
+// ========================================
+const sleepingCat = document.querySelector('.sleeping-cat');
+if (sleepingCat) {
+    sleepingCat.style.cursor = 'pointer';
+    sleepingCat.style.pointerEvents = 'auto';
 
-        // Play a subtle "meow" effect (visual only)
-        const meow = document.createElement('div');
-        meow.textContent = 'Meow!';
-        meow.style.cssText = `
-            position: absolute;
-            top: -30px;
-            left: 50%;
-            transform: translateX(-50%);
-            font-size: 14px;
-            color: var(--accent-primary);
-            animation: fadeUp 1s ease-out forwards;
-            pointer-events: none;
-        `;
+    sleepingCat.addEventListener('click', () => {
+        // Wake up animation
+        const zzz = sleepingCat.querySelector('.sleep-zzz');
+        if (zzz) {
+            zzz.style.display = 'none';
+            setTimeout(() => {
+                zzz.style.display = 'block';
+            }, 3000);
+        }
 
-        catMascot.appendChild(meow);
-
-        setTimeout(() => {
-            meow.remove();
-        }, 1000);
+        // Meow notification
+        showNotification('Meow! 🐱 Đừng đánh thức mèo đang ngủ!', 'info');
     });
 }
 
-// Add fadeUp animation dynamically
-const style = document.createElement('style');
-style.textContent = `
-    @keyframes fadeUp {
-        0% {
-            opacity: 1;
-            transform: translateX(-50%) translateY(0);
-        }
-        100% {
-            opacity: 0;
-            transform: translateX(-50%) translateY(-20px);
-        }
-    }
-`;
-document.head.appendChild(style);
-
-// Mobile menu toggle (for future implementation)
-const initMobileMenu = () => {
-    // Placeholder for mobile menu functionality
-    // Can be expanded when mobile menu button is added
-};
-
+// ========================================
 // Initialize
+// ========================================
 document.addEventListener('DOMContentLoaded', () => {
-    initMobileMenu();
     updateActiveNav();
 });
