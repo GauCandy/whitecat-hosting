@@ -3,6 +3,7 @@ import path from 'path';
 import fs from 'fs';
 import dotenv from 'dotenv';
 import http from 'http';
+import crypto from 'crypto';
 
 // Load environment variables
 dotenv.config();
@@ -30,6 +31,7 @@ const app: Application = express();
 // Configuration
 const PORT: number = parseInt(process.env.PORT || '3000', 10);
 const HOST: string = process.env.HOST || '0.0.0.0'; // Listen on all interfaces (IPv4)
+const IPV6_ADDRESS: string = process.env.IPV6_ADDRESS || '::'; // IPv6 address
 
 // Discord OAuth Configuration
 const DISCORD_CLIENT_ID: string = process.env.DISCORD_CLIENT_ID || '';
