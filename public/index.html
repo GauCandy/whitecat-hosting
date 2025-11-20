@@ -211,72 +211,11 @@
                 <p class="section-description">Chọn gói hosting phù hợp với nhu cầu của bạn</p>
             </div>
 
-            <div class="pricing-grid">
-                <div class="pricing-card">
-                    <div class="pricing-header">
-                        <div class="pricing-icon">🐱</div>
-                        <h3 class="pricing-name">Kitten</h3>
-                        <div class="pricing-price">
-                            <span class="currency">₫</span>
-                            <span class="amount">50.000</span>
-                            <span class="period">/tháng</span>
-                        </div>
-                    </div>
-                    <ul class="pricing-features">
-                        <li><span class="check">✓</span> 2GB SSD NVMe Gen 3</li>
-                        <li><span class="check">✓</span> 1 Core CPU Gen 12</li>
-                        <li><span class="check">✓</span> 1GB RAM</li>
-                        <li><span class="check">✓</span> 50GB Băng thông</li>
-                        <li><span class="check">✓</span> 1 Website</li>
-                        <li><span class="check">✓</span> SSL miễn phí</li>
-                    </ul>
-                    <a href="#contact" class="btn btn-outline">Đăng Ký</a>
-                </div>
-
-                <div class="pricing-card featured">
-                    <div class="badge">Phổ Biến</div>
-                    <div class="pricing-header">
-                        <div class="pricing-icon">😺</div>
-                        <h3 class="pricing-name">Cat</h3>
-                        <div class="pricing-price">
-                            <span class="currency">₫</span>
-                            <span class="amount">100.000</span>
-                            <span class="period">/tháng</span>
-                        </div>
-                    </div>
-                    <ul class="pricing-features">
-                        <li><span class="check">✓</span> 10GB SSD NVMe Gen 3</li>
-                        <li><span class="check">✓</span> 2 Core CPU Gen 12</li>
-                        <li><span class="check">✓</span> 2GB RAM</li>
-                        <li><span class="check">✓</span> 200GB Băng thông</li>
-                        <li><span class="check">✓</span> 5 Website</li>
-                        <li><span class="check">✓</span> SSL miễn phí</li>
-                        <li><span class="check">✓</span> Backup tự động</li>
-                    </ul>
-                    <a href="#contact" class="btn btn-primary">Đăng Ký</a>
-                </div>
-
-                <div class="pricing-card">
-                    <div class="pricing-header">
-                        <div class="pricing-icon">🦁</div>
-                        <h3 class="pricing-name">Lion</h3>
-                        <div class="pricing-price">
-                            <span class="currency">₫</span>
-                            <span class="amount">200.000</span>
-                            <span class="period">/tháng</span>
-                        </div>
-                    </div>
-                    <ul class="pricing-features">
-                        <li><span class="check">✓</span> 50GB SSD NVMe Gen 3</li>
-                        <li><span class="check">✓</span> 4 Core CPU Gen 12</li>
-                        <li><span class="check">✓</span> 4GB RAM</li>
-                        <li><span class="check">✓</span> Không giới hạn băng thông</li>
-                        <li><span class="check">✓</span> Không giới hạn website</li>
-                        <li><span class="check">✓</span> SSL miễn phí</li>
-                        <li><span class="check">✓</span> Backup tự động</li>
-                        <li><span class="check">✓</span> Hỗ trợ ưu tiên</li>
-                    </ul>
-                    <a href="#contact" class="btn btn-outline">Đăng Ký</a>
+            <!-- Pricing cards will be dynamically loaded from database -->
+            <div class="pricing-grid" id="pricingGrid">
+                <div class="pricing-loading">
+                    <div class="loading-spinner"></div>
+                    <p>Đang tải bảng giá...</p>
                 </div>
             </div>
         </div>

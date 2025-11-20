@@ -3,6 +3,7 @@ import path from 'path';
 import fs from 'fs';
 import dotenv from 'dotenv';
 import http from 'http';
+import crypto from 'crypto';
 
 // Load environment variables
 dotenv.config();
@@ -502,36 +503,23 @@ app.get('*', (req: Request, res: Response) => {
     res.sendFile(path.join(__dirname, '..', 'public', 'index.html'));
 });
 
-// Create HTTP server with IPv6-only support
+// Create HTTP server
 const server = http.createServer(app);
 
-// Listen on IPv6 only (ipv6Only: true disables dual-stack mode)
-server.listen(PORT, IPV6_ADDRESS, () => {
-    const address = server.address();
-    if (address && typeof address === 'object') {
-        console.log(`
+// Start server
+server.listen(PORT, HOST, () => {
+    console.log(`
     🐱 WhiteCat Hosting Server
     ==========================
     Server running at:
-    - IPv6: http://[${IPV6_ADDRESS}]:${address.port}
-    - Family: ${address.family} (IPv6 Only)
+    - http://${HOST}:${PORT}
+    - http://localhost:${PORT}
 
     Environment: ${process.env.NODE_ENV || 'development'}
-        `);
-    }
+    Discord OAuth: ${DISCORD_CLIENT_ID ? 'Configured' : 'Not configured'}
+    Database: SQLite (data/whitecat.db)
+    `);
 });
-
-// Force IPv6-only mode by setting socket option
-try {
-    // @ts-ignore - accessing internal property
-    if (server._handle && server._handle.setNoDelay) {
-        // Set IPv6_V6ONLY socket option
-        // This is handled differently in Node.js, the OS will handle dual-stack
-        // To truly disable IPv4, we need to ensure we're binding to a pure IPv6 address
-    }
-} catch (e) {
-    console.log('Note: IPv6-only enforcement depends on OS configuration');
-}
 
 // Graceful shutdown
 process.on('SIGTERM', () => {

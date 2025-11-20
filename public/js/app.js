@@ -1,5 +1,116 @@
 // WhiteCat Hosting - Frontend JavaScript
 
+// ========================================
+// Dynamic Pricing Management
+// ========================================
+const pricingManager = {
+    configs: [],
+
+    iconMap: {
+        'Kitten': '🐱',
+        'Cat': '😺',
+        'Lion': '🦁',
+        'Tiger': '🐯',
+        'Panther': '🐆'
+    },
+
+    async loadConfigs() {
+        try {
+            const response = await fetch('/api/configs');
+            if (!response.ok) {
+                throw new Error('Failed to load pricing configurations');
+            }
+
+            this.configs = await response.json();
+            this.renderPricingCards();
+        } catch (err) {
+            console.error('Error loading pricing:', err);
+            this.showError();
+        }
+    },
+
+    formatPrice(price) {
+        return new Intl.NumberFormat('vi-VN').format(price);
+    },
+
+    getIcon(name) {
+        return this.iconMap[name] || '🐱';
+    },
+
+    renderPricingCards() {
+        const pricingGrid = document.getElementById('pricingGrid');
+        if (!pricingGrid) return;
+
+        if (this.configs.length === 0) {
+            pricingGrid.innerHTML = `
+                <div class="pricing-empty">
+                    <p>Hiện chưa có gói hosting nào khả dụng.</p>
+                </div>
+            `;
+            return;
+        }
+
+        // Determine featured card (middle one if odd count, or second if even)
+        const featuredIndex = Math.floor(this.configs.length / 2);
+
+        const cardsHTML = this.configs.map((config, index) => {
+            const isFeatured = index === featuredIndex;
+            const icon = this.getIcon(config.name);
+            const features = Array.isArray(config.features) ? config.features : [];
+
+            return `
+                <div class="pricing-card ${isFeatured ? 'featured' : ''}" data-config-id="${config.id}">
+                    ${isFeatured ? '<div class="badge">Phổ Biến</div>' : ''}
+                    <div class="pricing-header">
+                        <div class="pricing-icon">${icon}</div>
+                        <h3 class="pricing-name">${config.name}</h3>
+                        <div class="pricing-price">
+                            <span class="currency">₫</span>
+                            <span class="amount">${this.formatPrice(config.price_monthly)}</span>
+                            <span class="period">/tháng</span>
+                        </div>
+                    </div>
+                    <ul class="pricing-features">
+                        <li><span class="check">✓</span> ${config.storage_gb}GB SSD NVMe Gen 3</li>
+                        <li><span class="check">✓</span> ${config.cpu_cores} Core CPU Gen 12</li>
+                        <li><span class="check">✓</span> ${config.ram_gb}GB RAM</li>
+                        ${features.map(feature => `
+                            <li><span class="check">✓</span> ${feature}</li>
+                        `).join('')}
+                    </ul>
+                    <a href="#contact" class="btn ${isFeatured ? 'btn-primary' : 'btn-outline'}">Đăng Ký</a>
+                </div>
+            `;
+        }).join('');
+
+        pricingGrid.innerHTML = cardsHTML;
+
+        // Re-apply scroll animations to new cards
+        const pricingCards = pricingGrid.querySelectorAll('.pricing-card');
+        pricingCards.forEach(card => {
+            card.classList.add('animate-on-scroll');
+            if (typeof scrollObserver !== 'undefined') {
+                scrollObserver.observe(card);
+            }
+        });
+    },
+
+    showError() {
+        const pricingGrid = document.getElementById('pricingGrid');
+        if (!pricingGrid) return;
+
+        pricingGrid.innerHTML = `
+            <div class="pricing-error">
+                <p>⚠️ Không thể tải bảng giá. Vui lòng thử lại sau.</p>
+                <button class="btn btn-primary" onclick="pricingManager.loadConfigs()">Thử Lại</button>
+            </div>
+        `;
+    }
+};
+
+// Load pricing on page load
+pricingManager.loadConfigs();
+
 // Theme Management
 const themeManager = {
     currentTheme: 'light',
