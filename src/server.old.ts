@@ -2,7 +2,6 @@ import express, { Application, Request, Response, NextFunction } from 'express';
 import path from 'path';
 import fs from 'fs';
 import dotenv from 'dotenv';
-import http from 'http';
 import crypto from 'crypto';
 
 // Load environment variables
@@ -503,11 +502,8 @@ app.get('*', (req: Request, res: Response) => {
     res.sendFile(path.join(__dirname, '..', 'public', 'index.html'));
 });
 
-// Create HTTP server
-const server = http.createServer(app);
-
 // Start server
-server.listen(PORT, HOST, () => {
+const server = app.listen(PORT, HOST, () => {
     console.log(`
     🐱 WhiteCat Hosting Server
     ==========================
@@ -520,6 +516,17 @@ server.listen(PORT, HOST, () => {
     Database: SQLite (data/whitecat.db)
     `);
 });
+
+// Clean up old sessions periodically
+setInterval(() => {
+    const now = new Date();
+    sessions.forEach((session, id) => {
+        const age = now.getTime() - session.createdAt.getTime();
+        if (age > 7 * 24 * 3600000) {
+            sessions.delete(id);
+        }
+    });
+}, 3600000);
 
 // Graceful shutdown
 process.on('SIGTERM', () => {

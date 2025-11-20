@@ -1,11 +1,11 @@
-import Database from 'better-sqlite3';
+import Database, { Database as DatabaseType } from 'better-sqlite3';
 import path from 'path';
 
 // Database file path
 const DB_PATH = process.env.DATABASE_PATH || path.join(__dirname, '..', '..', 'data', 'whitecat.db');
 
 // Create database connection
-const db = new Database(DB_PATH);
+const db: DatabaseType = new Database(DB_PATH);
 
 // Enable foreign keys
 db.pragma('foreign_keys = ON');
