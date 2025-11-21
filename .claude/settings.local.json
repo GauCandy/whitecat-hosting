@@ -1,7 +1,19 @@
 {
   "permissions": {
     "allow": [
-      "Bash(ipconfig:*)"
+      "Bash(ipconfig:*)",
+      "Bash(npm run build:*)",
+      "Bash(npm install:*)",
+      "Bash(npx tsc)",
+      "Bash(node_modules.bintsc)",
+      "Bash(.\\node_modules\\.bin\\tsc.cmd:*)",
+      "Bash(npx typescript:*)",
+      "Bash(node ./node_modules/typescript/bin/tsc:*)",
+      "Bash(npx -y tsc)",
+      "Bash(npx typescript-tsc:*)",
+      "Bash(npm cache clean:*)",
+      "Bash(echo:*)",
+      "Bash(NODE_ENV=development npm install:*)"
     ],
     "deny": [],
     "ask": []

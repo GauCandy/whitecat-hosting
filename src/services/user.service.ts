@@ -7,37 +7,37 @@ import {
 } from '../database/repository';
 
 class UserService {
-    getUserBalance(userId: string): number {
-        return userRepository.getBalance(userId);
+    async getUserBalance(userId: string): Promise<number> {
+        return await userRepository.getBalance(userId);
     }
 
     async deposit(userId: string, amount: number): Promise<{ balance: number }> {
         // Update balance
-        userRepository.updateBalance(userId, amount);
+        await userRepository.updateBalance(userId, amount);
 
         // Create transaction record
-        transactionRepository.create({
+        await transactionRepository.create({
             user_id: userId,
             type: 'deposit',
             amount: amount,
             description: 'Nạp tiền vào tài khoản'
         });
 
-        const newBalance = userRepository.getBalance(userId);
+        const newBalance = await userRepository.getBalance(userId);
         return { balance: newBalance };
     }
 
-    getTransactions(userId: string, limit: number = 50) {
-        return transactionRepository.findByUserId(userId, limit);
+    async getTransactions(userId: string, limit: number = 50) {
+        return await transactionRepository.findByUserId(userId, limit);
     }
 
-    getUserServers(userId: string) {
-        return userServerRepository.findByUserId(userId);
+    async getUserServers(userId: string) {
+        return await userServerRepository.findByUserId(userId);
     }
 
     async purchaseServer(userId: string, configId: number, serverName: string, months: number) {
         // Get config and check price
-        const config = serverConfigRepository.findById(configId);
+        const config = await serverConfigRepository.findById(configId);
         if (!config) {
             throw new HttpError(404, 'Server configuration not found');
         }
@@ -47,7 +47,7 @@ class UserService {
         }
 
         const totalPrice = config.price_monthly * months;
-        const balance = userRepository.getBalance(userId);
+        const balance = await userRepository.getBalance(userId);
 
         if (balance < totalPrice) {
             throw new HttpError(400, 'Insufficient balance', {
@@ -58,10 +58,10 @@ class UserService {
         }
 
         // Deduct balance
-        userRepository.updateBalance(userId, -totalPrice);
+        await userRepository.updateBalance(userId, -totalPrice);
 
         // Create server
-        const server = userServerRepository.create({
+        const server = await userServerRepository.create({
             user_id: userId,
             config_id: configId,
             server_name: serverName,
@@ -70,12 +70,12 @@ class UserService {
 
         if (!server) {
             // Refund if server creation failed
-            userRepository.updateBalance(userId, totalPrice);
+            await userRepository.updateBalance(userId, totalPrice);
             throw new HttpError(500, 'Failed to create server');
         }
 
         // Create transaction record
-        transactionRepository.create({
+        await transactionRepository.create({
             user_id: userId,
             type: 'purchase',
             amount: -totalPrice,
@@ -85,25 +85,25 @@ class UserService {
 
         return {
             server,
-            new_balance: userRepository.getBalance(userId)
+            new_balance: await userRepository.getBalance(userId)
         };
     }
 
     async extendServer(userId: string, serverId: number, months: number) {
         // Get server
-        const server = userServerRepository.findById(serverId);
+        const server = await userServerRepository.findById(serverId);
         if (!server || server.user_id !== userId) {
             throw new HttpError(404, 'Server not found');
         }
 
         // Get config for price
-        const config = serverConfigRepository.findById(server.config_id);
+        const config = await serverConfigRepository.findById(server.config_id);
         if (!config) {
             throw new HttpError(404, 'Server configuration not found');
         }
 
         const totalPrice = config.price_monthly * months;
-        const balance = userRepository.getBalance(userId);
+        const balance = await userRepository.getBalance(userId);
 
         if (balance < totalPrice) {
             throw new HttpError(400, 'Insufficient balance', {
@@ -114,11 +114,11 @@ class UserService {
         }
 
         // Deduct balance and extend
-        userRepository.updateBalance(userId, -totalPrice);
-        userServerRepository.extend(serverId, months);
+        await userRepository.updateBalance(userId, -totalPrice);
+        await userServerRepository.extend(serverId, months);
 
         // Create transaction
-        transactionRepository.create({
+        await transactionRepository.create({
             user_id: userId,
             type: 'purchase',
             amount: -totalPrice,
@@ -127,7 +127,7 @@ class UserService {
         });
 
         return {
-            new_balance: userRepository.getBalance(userId)
+            new_balance: await userRepository.getBalance(userId)
         };
     }
 }

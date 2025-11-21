@@ -24,14 +24,16 @@ import {
 } from './database/repository';
 
 // Initialize database
-initializeDatabase();
+initializeDatabase().catch(err => {
+    console.error('Failed to initialize database:', err);
+    process.exit(1);
+});
 
 const app: Application = express();
 
 // Configuration
 const PORT: number = parseInt(process.env.PORT || '3000', 10);
-const HOST: string = process.env.HOST || '0.0.0.0'; // Listen on all interfaces (IPv4)
-const IPV6_ADDRESS: string = process.env.IPV6_ADDRESS || '::'; // IPv6 address
+const HOST: string = process.env.HOST || '0.0.0.0'; // Listen on all IPv4 interfaces
 
 // Discord OAuth Configuration
 const DISCORD_CLIENT_ID: string = process.env.DISCORD_CLIENT_ID || '';
@@ -199,7 +201,7 @@ app.get('/auth/discord/callback', async (req: Request, res: Response) => {
             ? `https://cdn.discordapp.com/avatars/${discordUser.id}/${discordUser.avatar}.png`
             : `https://cdn.discordapp.com/embed/avatars/${parseInt(discordUser.discriminator) % 5}.png`;
 
-        const user = userRepository.upsert({
+        const user = await userRepository.upsert({
             id: discordUser.id,
             username: discordUser.username,
             email: discordUser.email,
@@ -234,7 +236,7 @@ app.get('/auth/discord/callback', async (req: Request, res: Response) => {
 });
 
 // Get current user
-app.get('/api/user', (req: Request, res: Response) => {
+app.get('/api/user', async (req: Request, res: Response) => {
     const sessionId = (req as any).cookies?.whitecat_session;
 
     if (!sessionId) {
@@ -248,7 +250,7 @@ app.get('/api/user', (req: Request, res: Response) => {
     }
 
     // Get user from database
-    const user = userRepository.findById(session.odUserId);
+    const user = await userRepository.findById(session.odUserId);
 
     if (!user) {
         return res.json({ authenticated: false });
@@ -283,8 +285,8 @@ app.post('/auth/logout', (req: Request, res: Response) => {
 // ========================================
 
 // Get all active server configs
-app.get('/api/configs', (req: Request, res: Response) => {
-    const configs = serverConfigRepository.findAllActive();
+app.get('/api/configs', async (req: Request, res: Response) => {
+    const configs = await serverConfigRepository.findAllActive();
     res.json(configs.map(config => ({
         ...config,
         features: JSON.parse(config.features)
@@ -292,8 +294,8 @@ app.get('/api/configs', (req: Request, res: Response) => {
 });
 
 // Get single config
-app.get('/api/configs/:id', (req: Request, res: Response) => {
-    const config = serverConfigRepository.findById(parseInt(req.params.id));
+app.get('/api/configs/:id', async (req: Request, res: Response) => {
+    const config = await serverConfigRepository.findById(parseInt(req.params.id));
     if (!config) {
         return res.status(404).json({ error: 'Config not found' });
     }
@@ -308,14 +310,14 @@ app.get('/api/configs/:id', (req: Request, res: Response) => {
 // ========================================
 
 // Get user balance
-app.get('/api/user/balance', requireAuth, (req: Request, res: Response) => {
+app.get('/api/user/balance', requireAuth, async (req: Request, res: Response) => {
     const userId = (req as any).userId;
-    const balance = userRepository.getBalance(userId);
+    const balance = await userRepository.getBalance(userId);
     res.json({ balance });
 });
 
 // Add balance (deposit) - In production, integrate with payment gateway
-app.post('/api/user/deposit', requireAuth, (req: Request, res: Response) => {
+app.post('/api/user/deposit', requireAuth, async (req: Request, res: Response) => {
     const userId = (req as any).userId;
     const { amount } = req.body;
 
@@ -324,25 +326,25 @@ app.post('/api/user/deposit', requireAuth, (req: Request, res: Response) => {
     }
 
     // Update balance
-    userRepository.updateBalance(userId, amount);
+    await userRepository.updateBalance(userId, amount);
 
     // Create transaction record
-    transactionRepository.create({
+    await transactionRepository.create({
         user_id: userId,
         type: 'deposit',
         amount: amount,
         description: 'Nạp tiền vào tài khoản'
     });
 
-    const newBalance = userRepository.getBalance(userId);
+    const newBalance = await userRepository.getBalance(userId);
     res.json({ success: true, balance: newBalance });
 });
 
 // Get transaction history
-app.get('/api/user/transactions', requireAuth, (req: Request, res: Response) => {
+app.get('/api/user/transactions', requireAuth, async (req: Request, res: Response) => {
     const userId = (req as any).userId;
     const limit = parseInt(req.query.limit as string) || 50;
-    const transactions = transactionRepository.findByUserId(userId, limit);
+    const transactions = await transactionRepository.findByUserId(userId, limit);
     res.json(transactions);
 });
 
@@ -351,14 +353,14 @@ app.get('/api/user/transactions', requireAuth, (req: Request, res: Response) => 
 // ========================================
 
 // Get user's servers
-app.get('/api/user/servers', requireAuth, (req: Request, res: Response) => {
+app.get('/api/user/servers', requireAuth, async (req: Request, res: Response) => {
     const userId = (req as any).userId;
-    const servers = userServerRepository.findByUserId(userId);
+    const servers = await userServerRepository.findByUserId(userId);
     res.json(servers);
 });
 
 // Purchase a server
-app.post('/api/user/servers', requireAuth, (req: Request, res: Response) => {
+app.post('/api/user/servers', requireAuth, async (req: Request, res: Response) => {
     const userId = (req as any).userId;
     const { config_id, server_name, months = 1 } = req.body;
 
@@ -367,13 +369,13 @@ app.post('/api/user/servers', requireAuth, (req: Request, res: Response) => {
     }
 
     // Get config and check price
-    const config = serverConfigRepository.findById(config_id);
+    const config = await serverConfigRepository.findById(config_id);
     if (!config) {
         return res.status(404).json({ error: 'Config not found' });
     }
 
     const totalPrice = config.price_monthly * months;
-    const balance = userRepository.getBalance(userId);
+    const balance = await userRepository.getBalance(userId);
 
     if (balance < totalPrice) {
         return res.status(400).json({
@@ -384,10 +386,10 @@ app.post('/api/user/servers', requireAuth, (req: Request, res: Response) => {
     }
 
     // Deduct balance
-    userRepository.updateBalance(userId, -totalPrice);
+    await userRepository.updateBalance(userId, -totalPrice);
 
     // Create server
-    const server = userServerRepository.create({
+    const server = await userServerRepository.create({
         user_id: userId,
         config_id: config_id,
         server_name: server_name,
@@ -396,12 +398,12 @@ app.post('/api/user/servers', requireAuth, (req: Request, res: Response) => {
 
     if (!server) {
         // Refund if server creation failed
-        userRepository.updateBalance(userId, totalPrice);
+        await userRepository.updateBalance(userId, totalPrice);
         return res.status(500).json({ error: 'Failed to create server' });
     }
 
     // Create transaction record
-    transactionRepository.create({
+    await transactionRepository.create({
         user_id: userId,
         type: 'purchase',
         amount: -totalPrice,
@@ -412,30 +414,30 @@ app.post('/api/user/servers', requireAuth, (req: Request, res: Response) => {
     res.json({
         success: true,
         server: server,
-        new_balance: userRepository.getBalance(userId)
+        new_balance: await userRepository.getBalance(userId)
     });
 });
 
 // Extend server
-app.post('/api/user/servers/:id/extend', requireAuth, (req: Request, res: Response) => {
+app.post('/api/user/servers/:id/extend', requireAuth, async (req: Request, res: Response) => {
     const userId = (req as any).userId;
     const serverId = parseInt(req.params.id);
     const { months = 1 } = req.body;
 
     // Get server
-    const server = userServerRepository.findById(serverId);
+    const server = await userServerRepository.findById(serverId);
     if (!server || server.user_id !== userId) {
         return res.status(404).json({ error: 'Server not found' });
     }
 
     // Get config for price
-    const config = serverConfigRepository.findById(server.config_id);
+    const config = await serverConfigRepository.findById(server.config_id);
     if (!config) {
         return res.status(404).json({ error: 'Config not found' });
     }
 
     const totalPrice = config.price_monthly * months;
-    const balance = userRepository.getBalance(userId);
+    const balance = await userRepository.getBalance(userId);
 
     if (balance < totalPrice) {
         return res.status(400).json({
@@ -446,11 +448,11 @@ app.post('/api/user/servers/:id/extend', requireAuth, (req: Request, res: Respon
     }
 
     // Deduct balance and extend
-    userRepository.updateBalance(userId, -totalPrice);
-    userServerRepository.extend(serverId, months);
+    await userRepository.updateBalance(userId, -totalPrice);
+    await userServerRepository.extend(serverId, months);
 
     // Create transaction
-    transactionRepository.create({
+    await transactionRepository.create({
         user_id: userId,
         type: 'purchase',
         amount: -totalPrice,
@@ -460,7 +462,7 @@ app.post('/api/user/servers/:id/extend', requireAuth, (req: Request, res: Respon
 
     res.json({
         success: true,
-        new_balance: userRepository.getBalance(userId)
+        new_balance: await userRepository.getBalance(userId)
     });
 });
 

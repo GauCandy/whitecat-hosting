@@ -68,7 +68,7 @@ export const authController = {
         }
 
         // Get user from database
-        const user = userRepository.findById(session.userId);
+        const user = await userRepository.findById(session.userId);
         if (!user) {
             return res.json({ authenticated: false });
         }

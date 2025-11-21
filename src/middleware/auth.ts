@@ -30,7 +30,7 @@ export const requireAuth = async (
         }
 
         // Get user from database
-        const user = userRepository.findById(session.userId);
+        const user = await userRepository.findById(session.userId);
         if (!user) {
             throw new HttpError(401, 'Unauthorized - User not found');
         }
@@ -70,7 +70,7 @@ export const optionalAuth = async (
         if (sessionId) {
             const session = sessionService.getSession(sessionId);
             if (session?.userId) {
-                const user = userRepository.findById(session.userId);
+                const user = await userRepository.findById(session.userId);
                 if (user) {
                     req.userId = user.id;
                     req.user = {

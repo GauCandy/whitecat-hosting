@@ -85,7 +85,7 @@ class AuthService {
             : `https://cdn.discordapp.com/embed/avatars/${parseInt(discordUser.discriminator) % 5}.png`;
 
         // Upsert user in database
-        const user = userRepository.upsert({
+        const user = await userRepository.upsert({
             id: discordUser.id,
             username: discordUser.username,
             email: discordUser.email,

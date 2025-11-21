@@ -6,7 +6,7 @@ import { HttpError } from '../types';
 export const serverController = {
     // Get all active configs
     getAllConfigs: asyncHandler(async (req: Request, res: Response) => {
-        const configs = serverConfigRepository.findAllActive();
+        const configs = await serverConfigRepository.findAllActive();
 
         res.json({
             success: true,
@@ -21,7 +21,7 @@ export const serverController = {
     // Get single config
     getConfig: asyncHandler(async (req: Request, res: Response) => {
         const configId = parseInt(req.params.id);
-        const config = serverConfigRepository.findById(configId);
+        const config = await serverConfigRepository.findById(configId);
 
         if (!config) {
             throw new HttpError(404, 'Server configuration not found');

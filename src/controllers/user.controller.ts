@@ -7,7 +7,7 @@ import { validators } from '../validators';
 export const userController = {
     // Get user balance
     getBalance: asyncHandler(async (req: AuthRequest, res: Response) => {
-        const balance = userService.getUserBalance(req.userId!);
+        const balance = await userService.getUserBalance(req.userId!);
         res.json({ success: true, data: { balance } });
     }),
 
@@ -25,7 +25,7 @@ export const userController = {
     // Get transaction history
     getTransactions: asyncHandler(async (req: AuthRequest, res: Response) => {
         const limit = parseInt(req.query.limit as string) || 50;
-        const transactions = userService.getTransactions(req.userId!, limit);
+        const transactions = await userService.getTransactions(req.userId!, limit);
 
         res.json({
             success: true,
@@ -35,7 +35,7 @@ export const userController = {
 
     // Get user's servers
     getServers: asyncHandler(async (req: AuthRequest, res: Response) => {
-        const servers = userService.getUserServers(req.userId!);
+        const servers = await userService.getUserServers(req.userId!);
 
         res.json({
             success: true,
