@@ -90,7 +90,7 @@ export async function seedServerConfigs(): Promise<void> {
     try {
         const configs = [
             {
-                name: 'Kitten',
+                name: 'Kitten 🐱',
                 cpu_cores: 1,
                 ram_gb: 1,
                 storage_gb: 2,
@@ -98,10 +98,10 @@ export async function seedServerConfigs(): Promise<void> {
                 bandwidth_gb: 50,
                 price_monthly: 50000,
                 max_websites: 1,
-                features: JSON.stringify(['SSL miễn phí', 'Backup hàng tuần'])
+                features: JSON.stringify(['SSL miễn phí', 'Backup hàng tuần', 'Email support'])
             },
             {
-                name: 'Cat',
+                name: 'Cat 😸',
                 cpu_cores: 2,
                 ram_gb: 2,
                 storage_gb: 10,
@@ -109,10 +109,21 @@ export async function seedServerConfigs(): Promise<void> {
                 bandwidth_gb: 200,
                 price_monthly: 100000,
                 max_websites: 5,
-                features: JSON.stringify(['SSL miễn phí', 'Backup tự động hàng ngày', 'Email hosting'])
+                features: JSON.stringify(['SSL miễn phí', 'Backup tự động hàng ngày', 'Email hosting', 'cPanel'])
             },
             {
-                name: 'Lion',
+                name: 'Cheetah 🐆',
+                cpu_cores: 3,
+                ram_gb: 3,
+                storage_gb: 25,
+                storage_type: 'NVMe SSD Gen 3',
+                bandwidth_gb: 500,
+                price_monthly: 150000,
+                max_websites: 10,
+                features: JSON.stringify(['SSL miễn phí', 'Backup tự động hàng ngày', 'Email hosting', 'cPanel', 'LiteSpeed Cache'])
+            },
+            {
+                name: 'Lion 🦁',
                 cpu_cores: 4,
                 ram_gb: 4,
                 storage_gb: 50,
@@ -120,7 +131,29 @@ export async function seedServerConfigs(): Promise<void> {
                 bandwidth_gb: 0, // Unlimited
                 price_monthly: 200000,
                 max_websites: 0, // Unlimited
-                features: JSON.stringify(['SSL miễn phí', 'Backup tự động hàng ngày', 'Email hosting', 'Hỗ trợ ưu tiên', 'CDN miễn phí'])
+                features: JSON.stringify(['SSL miễn phí', 'Backup tự động hàng ngày', 'Email hosting', 'cPanel', 'Hỗ trợ ưu tiên', 'CDN miễn phí'])
+            },
+            {
+                name: 'Tiger 🐯',
+                cpu_cores: 6,
+                ram_gb: 8,
+                storage_gb: 100,
+                storage_type: 'NVMe SSD Gen 4',
+                bandwidth_gb: 0, // Unlimited
+                price_monthly: 350000,
+                max_websites: 0, // Unlimited
+                features: JSON.stringify(['SSL miễn phí', 'Backup tự động hàng ngày', 'Email hosting', 'cPanel', 'Hỗ trợ ưu tiên VIP', 'CDN miễn phí', 'Dedicated IP'])
+            },
+            {
+                name: 'Panther 🐈‍⬛',
+                cpu_cores: 8,
+                ram_gb: 16,
+                storage_gb: 200,
+                storage_type: 'NVMe SSD Gen 4',
+                bandwidth_gb: 0, // Unlimited
+                price_monthly: 600000,
+                max_websites: 0, // Unlimited
+                features: JSON.stringify(['SSL miễn phí', 'Backup tự động theo giờ', 'Email hosting', 'cPanel/Plesk', 'Hỗ trợ ưu tiên VIP 24/7', 'CDN cao cấp', 'Multiple Dedicated IPs', 'DDoS Protection'])
             }
         ];
 

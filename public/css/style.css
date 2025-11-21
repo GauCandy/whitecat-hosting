@@ -307,11 +307,17 @@ body {
     position: absolute;
     width: 80px;
     height: 50px;
-    background: var(--cat-color);
+    background: linear-gradient(135deg, var(--cat-color) 0%, rgba(255, 255, 255, 0.9) 100%);
     border-radius: 50% 50% 45% 45%;
     bottom: 0;
     left: 20px;
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.15);
+    animation: breathing 3s ease-in-out infinite;
+}
+
+@keyframes breathing {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.03); }
 }
 
 /* Cat head */
@@ -319,11 +325,37 @@ body {
     position: absolute;
     width: 45px;
     height: 40px;
-    background: var(--cat-color);
+    background: linear-gradient(135deg, var(--cat-color) 0%, rgba(255, 255, 255, 0.9) 100%);
     border-radius: 50% 50% 45% 45%;
     bottom: 20px;
     left: 0;
-    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.15);
+}
+
+/* Add cute blush marks */
+.cat-head::before,
+.cat-head::after {
+    content: '';
+    position: absolute;
+    width: 8px;
+    height: 6px;
+    background: rgba(255, 182, 193, 0.6);
+    border-radius: 50%;
+    top: 18px;
+    animation: blushPulse 2s ease-in-out infinite;
+}
+
+.cat-head::before {
+    left: 2px;
+}
+
+.cat-head::after {
+    right: 2px;
+}
+
+@keyframes blushPulse {
+    0%, 100% { opacity: 0.6; }
+    50% { opacity: 0.9; }
 }
 
 /* Cat ears - triangles */
@@ -340,6 +372,14 @@ body {
     top: -10px;
     left: 3px;
     transform: rotate(-15deg);
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
+    animation: earTwitch 3s ease-in-out infinite;
+}
+
+@keyframes earTwitch {
+    0%, 100% { transform: rotate(-15deg); }
+    10% { transform: rotate(-10deg); }
+    20% { transform: rotate(-15deg); }
 }
 
 .ear-left::after {
@@ -358,6 +398,9 @@ body {
     top: -10px;
     right: 3px;
     transform: rotate(15deg);
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
+    animation: earTwitch 3s ease-in-out infinite;
+    animation-delay: 0.5s;
 }
 
 .ear-right::after {
@@ -445,12 +488,19 @@ body {
     position: absolute;
     width: 40px;
     height: 15px;
-    background: var(--cat-color);
+    background: linear-gradient(90deg, var(--cat-color) 0%, rgba(255, 255, 255, 0.9) 100%);
     border-radius: 20px;
     bottom: 10px;
     right: -15px;
     transform: rotate(-20deg);
-    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15);
+    animation: tailWag 4s ease-in-out infinite;
+}
+
+@keyframes tailWag {
+    0%, 100% { transform: rotate(-20deg); }
+    25% { transform: rotate(-15deg); }
+    75% { transform: rotate(-25deg); }
 }
 
 .cat-tail::after {
@@ -474,6 +524,65 @@ body {
     bottom: 5px;
     left: 25px;
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+/* Add paw pads */
+.cat-paw::before {
+    content: '';
+    position: absolute;
+    width: 3px;
+    height: 3px;
+    background: rgba(255, 182, 193, 0.5);
+    border-radius: 50%;
+    top: 2px;
+    left: 2px;
+}
+
+.cat-paw::after {
+    content: '';
+    position: absolute;
+    width: 3px;
+    height: 3px;
+    background: rgba(255, 182, 193, 0.5);
+    border-radius: 50%;
+    top: 2px;
+    right: 2px;
+}
+
+/* Cute spots on body */
+.cat-spot {
+    position: absolute;
+    background: rgba(200, 200, 200, 0.3);
+    border-radius: 50%;
+    animation: spotPulse 4s ease-in-out infinite;
+}
+
+.spot-1 {
+    width: 8px;
+    height: 8px;
+    bottom: 25px;
+    left: 35px;
+}
+
+.spot-2 {
+    width: 6px;
+    height: 6px;
+    bottom: 15px;
+    left: 50px;
+    animation-delay: 1s;
+}
+
+.spot-3 {
+    width: 7px;
+    height: 7px;
+    bottom: 30px;
+    left: 60px;
+    animation-delay: 2s;
+}
+
+@keyframes spotPulse {
+    0%, 100% { opacity: 0.3; }
+    50% { opacity: 0.5; }
 }
 
 /* Sleep Zzz animation */
@@ -514,16 +623,87 @@ body {
 @keyframes zzz {
     0% {
         opacity: 0;
-        transform: translateY(0) scale(0.5);
+        transform: translateY(0) scale(0.5) rotate(0deg);
     }
     50% {
         opacity: 1;
-        transform: translateY(-10px) scale(1);
+        transform: translateY(-10px) scale(1) rotate(5deg);
     }
     100% {
         opacity: 0;
         transform: translateY(-20px) scale(0.8);
     }
+}
+
+/* Cat Whiskers */
+.cat-whiskers {
+    position: absolute;
+    top: 8px;
+}
+
+.whiskers-left {
+    left: -15px;
+}
+
+.whiskers-right {
+    right: -15px;
+}
+
+.whisker {
+    position: absolute;
+    height: 1.5px;
+    background: rgba(100, 100, 100, 0.5);
+    border-radius: 2px;
+    animation: whiskerMove 3s ease-in-out infinite;
+}
+
+.whiskers-left .whisker {
+    transform-origin: right center;
+}
+
+.whiskers-right .whisker {
+    transform-origin: left center;
+}
+
+.whiskers-left .whisker-1 {
+    width: 12px;
+    top: 0;
+    transform: rotate(-10deg);
+}
+
+.whiskers-left .whisker-2 {
+    width: 14px;
+    top: 3px;
+    transform: rotate(-5deg);
+}
+
+.whiskers-left .whisker-3 {
+    width: 12px;
+    top: 6px;
+    transform: rotate(0deg);
+}
+
+.whiskers-right .whisker-1 {
+    width: 12px;
+    top: 0;
+    transform: rotate(10deg);
+}
+
+.whiskers-right .whisker-2 {
+    width: 14px;
+    top: 3px;
+    transform: rotate(5deg);
+}
+
+.whiskers-right .whisker-3 {
+    width: 12px;
+    top: 6px;
+    transform: rotate(0deg);
+}
+
+@keyframes whiskerMove {
+    0%, 100% { transform: scale(1) translateX(0); }
+    50% { transform: scale(1.05) translateX(1px); }
 }
 
 /* Background clouds */
