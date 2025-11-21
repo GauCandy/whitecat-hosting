@@ -20,7 +20,7 @@ export interface ServerConfig {
     bandwidth_gb: number;    // Bandwidth in GB (0 = unlimited)
     price_monthly: number;   // Monthly price in VND
     max_websites: number;    // Maximum websites (0 = unlimited)
-    features: string;        // JSON array of features
+    features: string[];      // Array of features (JSONB in database)
     is_active: boolean;      // Whether this config is available
     created_at: string;      // ISO timestamp
     updated_at: string;      // ISO timestamp

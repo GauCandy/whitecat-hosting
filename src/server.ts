@@ -287,10 +287,7 @@ app.post('/auth/logout', (req: Request, res: Response) => {
 // Get all active server configs
 app.get('/api/configs', async (req: Request, res: Response) => {
     const configs = await serverConfigRepository.findAllActive();
-    res.json(configs.map(config => ({
-        ...config,
-        features: JSON.parse(config.features)
-    })));
+    res.json(configs);
 });
 
 // Get single config
@@ -299,10 +296,7 @@ app.get('/api/configs/:id', async (req: Request, res: Response) => {
     if (!config) {
         return res.status(404).json({ error: 'Config not found' });
     }
-    res.json({
-        ...config,
-        features: JSON.parse(config.features)
-    });
+    res.json(config);
 });
 
 // ========================================

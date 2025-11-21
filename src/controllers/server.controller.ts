@@ -12,7 +12,6 @@ export const serverController = {
             success: true,
             data: configs.map(config => ({
                 ...config,
-                features: JSON.parse(config.features),
                 is_active: Boolean(config.is_active)
             }))
         });
@@ -31,7 +30,6 @@ export const serverController = {
             success: true,
             data: {
                 ...config,
-                features: JSON.parse(config.features),
                 is_active: Boolean(config.is_active)
             }
         });

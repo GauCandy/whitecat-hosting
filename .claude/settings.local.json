@@ -13,7 +13,8 @@
       "Bash(npx typescript-tsc:*)",
       "Bash(npm cache clean:*)",
       "Bash(echo:*)",
-      "Bash(NODE_ENV=development npm install:*)"
+      "Bash(NODE_ENV=development npm install:*)",
+      "Bash(node:*)"
     ],
     "deny": [],
     "ask": []
